@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор "Стоимость Скрытой Нагрузки"</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 250px;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        
+        .gauge-bg {
+            fill: none;
+            stroke: #374151;
+            stroke-width: 20;
+        }
+        
+        .gauge-fill {
+            fill: none;
+            stroke-width: 20;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1s ease-in-out, stroke 0.5s ease;
+        }
+        
+        .gauge-text {
+            text-anchor: middle;
+            dominant-baseline: middle;
+            font-size: 24px;
+            font-weight: bold;
+            fill: white;
+        }
+        
+        .gauge-label {
+            text-anchor: middle;
+            dominant-baseline: middle;
+            font-size: 14px;
+            fill: #9ca3af;
+        }
+        
+        .result-card {
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .result-card.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+                ⚡ Калькулятор "СТОИМОСТЬ ВЫГОРАНИЯ"
+            </h1>
+            <p class="text-xl text-white/80 max-w-3xl mx-auto mb-6">
+                Мгновенно оцените финансовые и личные издержки от выполнения несвойственных вам задач
+            </p>
+            <div class="glass-effect rounded-lg p-3 inline-block">
+                <p class="text-white/90 text-sm">
+                    🔒 Все расчеты анонимны. Мы не сохраняем ваши данные.
+                </p>
+            </div>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Input Form -->
+            <div class="glass-effect rounded-2xl p-8 mb-8">
+                <h2 class="text-2xl font-bold text-white mb-8 text-center">
+                    📊 Введите ваши данные для расчета. Переводим чувства в цифры
+                </h2>
+                
+                <form id="calculatorForm" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Hours Spent -->
+                        <div>
+                            <label class="flex items-center text-white font-medium mb-3">
+                                ФАКТИЧЕСКИ потрачено часов за неделю
+                                <div class="tooltip ml-2">
+                                    <span class="text-blue-300 text-lg">ℹ️</span>
+                                    <div class="tooltip-text">
+                                        Введите, сколько часов за последнюю неделю вы потратили на доработку чужих задач, которые не входят в ваши прямые обязанности.
+                                    </div>
+                                </div>
+                            </label>
+                            <input type="number" id="hoursSpent" step="0.5" min="0" max="168" 
+                                   class="w-full p-4 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:border-blue-400 focus:outline-none transition-colors"
+                                   placeholder="Например: 15.5" required>
+                        </div>
+
+                        <!-- Weekly Limit -->
+                        <div>
+                            <label class="flex items-center text-white font-medium mb-3">
+                                Ваш недельный ЛИМИТ на чужую работу
+                                <div class="tooltip ml-2">
+                                    <span class="text-blue-300 text-lg">ℹ️</span>
+                                    <div class="tooltip-text">
+                                        Сколько часов чужой работы в неделю является для вас 'красной чертой', после которой страдает ваша основная работа и самочувствие?
+                                    </div>
+                                </div>
+                            </label>
+                            <input type="number" id="weeklyLimit" min="1" max="168" 
+                                   class="w-full p-4 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:border-blue-400 focus:outline-none transition-colors"
+                                   placeholder="Например: 10" required>
+                        </div>
+
+                        <!-- Monthly Salary -->
+                        <div>
+                            <label class="block text-white font-medium mb-3">
+                                Ваша месячная зарплата (до вычета налогов)
+                            </label>
+                            <input type="number" id="monthlySalary" min="1" 
+                                   class="w-full p-4 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:border-blue-400 focus:outline-none transition-colors"
+                                   placeholder="Например: 150000" required>
+                        </div>
+
+                        <!-- Currency -->
+                        <div>
+                            <label class="block text-white font-medium mb-3">Валюта</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="currency" value="RUB" checked class="mr-2 text-blue-500">
+                                    <span class="text-white">RUB (₽)</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="currency" value="EUR" class="mr-2 text-blue-500">
+                                    <span class="text-white">EUR (€)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Value Coefficient -->
+                    <div>
+                        <label class="flex items-center text-white font-medium mb-3">
+                            Коэффициент вашей ценности
+                            <div class="tooltip ml-2">
+                                <span class="text-blue-300 text-lg">ℹ️</span>
+                                <div class="tooltip-text">
+                                    Оцените, во сколько раз ценность, которую вы создаете для компании (влияние на проекты, команду, прибыль), превышает вашу зарплату.
+                                </div>
+                            </div>
+                        </label>
+                        <select id="valueCoefficient" 
+                                class="w-full p-4 rounded-xl bg-white/10 text-white border border-white/20 focus:border-blue-400 focus:outline-none transition-colors" required>
+                            <option value="" style="color: #374151;">Выберите ваш уровень</option>
+                            <option value="1.5" style="color: #374151;">1.5 - Специалист, операционная работа</option>
+                            <option value="2.0" style="color: #374151;">2.0 - Опытный специалист</option>
+                            <option value="3.0" style="color: #374151;">3.0 - Менеджер, руководитель группы</option>
+                            <option value="4.0" style="color: #374151;">4.0 - Руководитель отдела, ключевой сотрудник</option>
+                            <option value="5.0" style="color: #374151;">5.0 - Топ-менеджер, стратегическая роль</option>
+                        </select>
+                    </div>
+
+                    <!-- Calculate Button -->
+                    <div class="text-center pt-6">
+                        <button type="submit" 
+                                class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-4 px-12 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                            🧮 Рассчитать
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="result-card glass-effect rounded-2xl p-8" style="display: none;">
+                <h2 class="text-2xl font-bold text-white mb-8 text-center">
+                    📈 Расчет Индекса и Стоимости Выгорания
+                </h2>
+
+                <div class="grid lg:grid-cols-2 gap-8 items-center">
+                    <!-- Burnout Index Gauge -->
+                    <div class="text-center">
+                        <h3 class="text-xl font-semibold text-white mb-4">Индекс Выгорания</h3>
+                        <div class="text-lg font-medium text-white mb-4" id="gaugeStatusTop">Норма</div>
+                        <div class="gauge-container">
+                            <svg width="200" height="200" viewBox="0 0 200 200">
+                                <!-- Background arc -->
+                                <path d="M 30 170 A 70 70 0 1 1 170 170" class="gauge-bg"></path>
+                                <!-- Progress arc -->
+                                <path id="gaugeProgress" d="M 30 170 A 70 70 0 1 1 170 170" class="gauge-fill" 
+                                      stroke-dasharray="0 220" stroke="#10b981"></path>
+                                <!-- Center text -->
+                                <text x="100" y="100" class="gauge-text" id="gaugeValue">0%</text>
+                            </svg>
+                        </div>
+                        <div class="mt-4 flex justify-center gap-4 text-sm">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span class="text-white/80">0-40% Норма</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                <span class="text-white/80">41-70% Внимание</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span class="text-white/80">71-100% Критично</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Analysis -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-6">Анализ потерь за неделю</h3>
+                        <div class="space-y-4">
+                            <div class="bg-white/5 rounded-lg p-4">
+                                <div class="text-white/70 text-sm mb-1">Ваш Индекс Выгорания:</div>
+                                <div class="text-2xl font-bold text-white" id="burnoutIndex">0%</div>
+                            </div>
+                            
+                            <div class="bg-white/5 rounded-lg p-4">
+                                <div class="text-white/70 text-sm mb-1">Прямые убытки компании (ваша зарплата):</div>
+                                <div class="text-xl font-semibold text-red-400" id="directLosses">0 ₽</div>
+                            </div>
+                            
+                            <div class="bg-white/5 rounded-lg p-4">
+                                <div class="text-white/70 text-sm mb-1">Упущенная выгода компании (несозданная ценность):</div>
+                                <div class="text-xl font-semibold text-orange-400" id="opportunityLoss">0 ₽</div>
+                            </div>
+                            
+                            <div class="bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-lg p-4 border border-red-500/30">
+                                <div class="text-white/70 text-sm mb-1">ИТОГО ПОТЕРИ КОМПАНИИ ЗА НЕДЕЛЮ:</div>
+                                <div class="text-3xl font-bold text-white pulse-animation" id="totalLosses">0 ₽</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 text-center">
+                            <button onclick="copyResults()" 
+                                    class="bg-white/10 text-white font-medium py-3 px-6 rounded-lg hover:bg-white/20 transition-colors border border-white/20">
+                                📋 Скопировать результаты
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('calculatorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            calculateResults();
+        });
+
+        function calculateResults() {
+            // Get input values
+            const hoursSpent = parseFloat(document.getElementById('hoursSpent').value);
+            const weeklyLimit = parseInt(document.getElementById('weeklyLimit').value);
+            const monthlySalary = parseFloat(document.getElementById('monthlySalary').value);
+            const currency = document.querySelector('input[name="currency"]:checked').value;
+            const valueCoefficient = parseFloat(document.getElementById('valueCoefficient').value);
+
+            // Validate inputs
+            if (!hoursSpent || !weeklyLimit || !monthlySalary || !valueCoefficient) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+
+            // Calculate hourly rate
+            const hourlyRate = (monthlySalary * 1.3) / 168;
+
+            // Calculate Burnout Index
+            const burnoutIndex = Math.min(100, (hoursSpent / weeklyLimit) * 100);
+
+            // Calculate financial losses
+            const directLosses = hoursSpent * hourlyRate;
+            const opportunityLoss = directLosses * (valueCoefficient - 1);
+            const totalLosses = directLosses + opportunityLoss;
+
+            // Get currency symbol
+            const currencySymbol = currency === 'RUB' ? '₽' : '€';
+
+            // Update results
+            updateGauge(burnoutIndex);
+            document.getElementById('burnoutIndex').textContent = `${burnoutIndex.toFixed(1)}%`;
+            document.getElementById('directLosses').textContent = `${Math.round(directLosses).toLocaleString()} ${currencySymbol}`;
+            document.getElementById('opportunityLoss').textContent = `${Math.round(opportunityLoss).toLocaleString()} ${currencySymbol}`;
+            document.getElementById('totalLosses').textContent = `${Math.round(totalLosses).toLocaleString()} ${currencySymbol}`;
+
+            // Show results section
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.style.display = 'block';
+            setTimeout(() => {
+                resultsSection.classList.add('show');
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+
+        function updateGauge(percentage) {
+            const gauge = document.getElementById('gaugeProgress');
+            const gaugeValue = document.getElementById('gaugeValue');
+            const gaugeStatusTop = document.getElementById('gaugeStatusTop');
+            
+            // Calculate arc length (approximately 220 units for semicircle)
+            const maxLength = 220;
+            const currentLength = (percentage / 100) * maxLength;
+            
+            // Determine color and status based on percentage
+            let color, status;
+            if (percentage <= 40) {
+                color = '#10b981'; // Green
+                status = 'Норма';
+            } else if (percentage <= 70) {
+                color = '#f59e0b'; // Yellow
+                status = 'Внимание';
+            } else {
+                color = '#ef4444'; // Red
+                status = 'Критический уровень';
+            }
+            
+            // Update gauge
+            gauge.style.stroke = color;
+            gauge.style.strokeDasharray = `${currentLength} ${maxLength}`;
+            gaugeValue.textContent = `${percentage.toFixed(1)}%`;
+            gaugeStatusTop.textContent = status;
+        }
+
+        function copyResults() {
+            const burnoutIndex = document.getElementById('burnoutIndex').textContent;
+            const directLosses = document.getElementById('directLosses').textContent;
+            const opportunityLoss = document.getElementById('opportunityLoss').textContent;
+            const totalLosses = document.getElementById('totalLosses').textContent;
+            
+            const results = `
+📊 РЕЗУЛЬТАТЫ АНАЛИЗА СКРЫТОЙ НАГРУЗКИ
+
+🔥 Индекс Выгорания: ${burnoutIndex}
+
+💰 Прямые убытки компании: ${directLosses}
+📈 Упущенная выгода компании: ${opportunityLoss}
+🚨 ИТОГО ПОТЕРИ ЗА НЕДЕЛЮ: ${totalLosses}
+
+Рассчитано с помощью калькулятора "Стоимость Скрытой Нагрузки"
+            `.trim();
+            
+            navigator.clipboard.writeText(results).then(() => {
+                alert('✅ Результаты скопированы в буфер обмена!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = results;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ Результаты скопированы в буфер обмена!');
+            });
+        }
+
+        // Add some interactive effects
+        document.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('focus', function() {
+                this.style.transform = 'scale(1.02)';
+            });
+            
+            element.addEventListener('blur', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97cfc3c505bec244',t:'MTc1NzUxNjEwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
